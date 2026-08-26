@@ -1,0 +1,71 @@
+# ============================================================
+# Continue Dev Config - OpenRouter Free Models
+# ============================================================
+# Model: Mien phi qua OpenRouter (can API key free)
+# Dang ky: https://openrouter.ai (free tier available)
+# ============================================================
+
+name: OpenRouter Free Config
+version: 1.0.0
+schema: v1
+
+models:
+  # ── DeepSeek V3 Free ───────────────────────────────────────
+  - name: "DeepSeek V3 (Free)"
+    provider: openrouter
+    model: deepseek/deepseek-chat-v3-0324:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 128000
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  # ── CodeGemma 2B (Free, nhe) ──────────────────────────────
+  - name: "CodeGemma 2B (Free)"
+    provider: openrouter
+    model: google/codegemma-2b:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 8192
+    roles:
+      - autocomplete
+
+  # ── CodeLlama 7B (Free) ───────────────────────────────────
+  - name: "CodeLlama 7B (Free)"
+    provider: openrouter
+    model: codellama/codellama-7b-hf:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 16384
+    roles:
+      - chat
+      - edit
+
+  # ── Qwen 2.5 Coder 32B (Free, manh) ──────────────────────
+  - name: "Qwen 2.5 Coder 32B (Free)"
+    provider: openrouter
+    model: qwen/qwen-2.5-coder-32b-instruct:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 32768
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  # ── Mistral 7B (Free) ────────────────────────────────────
+  - name: "Mistral 7B (Free)"
+    provider: openrouter
+    model: mistralai/mistral-7b-instruct:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 32768
+    roles:
+      - chat
+      - edit
+
+# ── Tab Autocomplete ──────────────────────────────────────────
+tabAutocompleteModel:
+  name: "CodeGemma 2B (Autocomplete)"
+  provider: openrouter
+  model: google/codegemma-2b:free
+  apiKey: YOUR_OPENROUTER_API_KEY

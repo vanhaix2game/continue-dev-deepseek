@@ -1,0 +1,127 @@
+# ============================================================
+# Continue Dev Config - Combined (All Options)
+# ============================================================
+# Chon model tu danh sach ben duoi
+# ============================================================
+
+name: Combined Config
+version: 1.0.0
+schema: v1
+
+models:
+  # ╔═══════════════════════════════════════════════════════════╗
+  # ║  DEEPSEEK BROWSER AGENT (Mien phi 100%)                ║
+  # ║  Can: node src/index.js --proxy                         ║
+  # ╚═══════════════════════════════════════════════════════════╝
+  - name: "DeepSeek Free (Browser)"
+    provider: openai
+    model: deepseek-chat-free
+    apiBase: http://localhost:11434/v1
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+
+  # ╔═══════════════════════════════════════════════════════════╗
+  # ║  DEEPSEEK API (Gan nhu mien phi)                        ║
+  # ║  Cost: $0.14/1M tokens                                  ║
+  # ╚═══════════════════════════════════════════════════════════╝
+  - name: "DeepSeek V4 Flash (API)"
+    provider: openai
+    model: deepseek-v4-flash
+    apiKey: YOUR_DEEPSEEK_API_KEY
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  - name: "DeepSeek V4 Pro (API)"
+    provider: openai
+    model: deepseek-v4-pro
+    apiKey: YOUR_DEEPSEEK_API_KEY
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  # ╔═══════════════════════════════════════════════════════════╗
+  # ║  OLLAMA LOCAL (Mien phi 100%, can may manh)             ║
+  # ║  Can: Ollama installed + ollama pull <model>            ║
+  # ╚═══════════════════════════════════════════════════════════╝
+  - name: "DeepSeek Coder 6.7B (Local)"
+    provider: ollama
+    model: deepseek-coder:6.7b
+    apiBase: http://localhost:11434
+    contextLength: 16384
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  - name: "Qwen Coder 1.5B (Fast)"
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://localhost:11434
+    contextLength: 8192
+    roles:
+      - autocomplete
+
+  # ╔═══════════════════════════════════════════════════════════╗
+  # ║  OPENROUTER FREE (Can API key free)                     ║
+  # ║  Dang ky: https://openrouter.ai                         ║
+  # ╚═══════════════════════════════════════════════════════════╝
+  - name: "DeepSeek V3 (Free OpenRouter)"
+    provider: openrouter
+    model: deepseek/deepseek-chat-v3-0324:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 128000
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  - name: "Qwen Coder 32B (Free OpenRouter)"
+    provider: openrouter
+    model: qwen/qwen-2.5-coder-32b-instruct:free
+    apiKey: YOUR_OPENROUTER_API_KEY
+    contextLength: 32768
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+# ── Tab Autocomplete ──────────────────────────────────────────
+tabAutocompleteModel:
+  name: "Qwen Coder 1.5B (Autocomplete)"
+  provider: ollama
+  model: qwen2.5-coder:1.5b
+  apiBase: http://localhost:11434
+
+# ── Context Providers ─────────────────────────────────────────
+contextProviders:
+  - name: code
+  - name: docs
+  - name: directory
+  - name: web
+  - name: issues
+  - name: pull_requests
+
+# ── Rules ─────────────────────────────────────────────────────
+rules:
+  - "Always write complete, production-ready code"
+  - "Include proper error handling"
+  - "Use TypeScript for new projects when possible"
+  - "Follow existing code style in the project"
+  - "Add comments only when necessary for complex logic"

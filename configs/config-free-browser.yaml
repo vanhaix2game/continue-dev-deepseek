@@ -1,0 +1,72 @@
+# ============================================================
+# Continue Dev Config - DeepSeek Browser Agent (FREE)
+# ============================================================
+# Model: DeepSeek qua Browser - Mien phi, khong can API key
+# ============================================================
+
+name: DeepSeek Free Config
+version: 1.0.0
+schema: v1
+
+models:
+  # ── DeepSeek Browser Agent (Mien phi 100%) ──────────────────
+  - name: "DeepSeek Free (Browser)"
+    provider: openai
+    model: deepseek-chat-free
+    apiBase: http://localhost:11434/v1
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      maxTokens: 8192
+      temperature: 0.7
+
+  # ── DeepSeek API (Gan nhu mien phi - $0.14/1M tokens) ───────
+  - name: "DeepSeek V4 Flash (API)"
+    provider: openai
+    model: deepseek-v4-flash
+    apiKey: YOUR_DEEPSEEK_API_KEY
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  - name: "DeepSeek V4 Pro (API)"
+    provider: openai
+    model: deepseek-v4-pro
+    apiKey: YOUR_DEEPSEEK_API_KEY
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+
+# ── Tab Autocomplete ──────────────────────────────────────────
+tabAutocompleteModel:
+  name: "DeepSeek Free (Autocomplete)"
+  provider: openai
+  model: deepseek-chat-free
+  apiBase: http://localhost:11434/v1
+
+# ── Context Providers ─────────────────────────────────────────
+contextProviders:
+  - name: code
+  - name: docs
+  - name: directory
+  - name: web
+  - name: issues
+  - name: pull_requests
+
+# ── Rules ─────────────────────────────────────────────────────
+rules:
+  - "Always write complete, production-ready code"
+  - "Include proper error handling"
+  - "Use TypeScript for new projects when possible"
+  - "Follow existing code style in the project"

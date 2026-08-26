@@ -1,0 +1,11 @@
+node_modules/
+.backups/
+task-queue/
+task-results/
+deepseek-browser-agent/node_modules/
+deepseek-browser-agent/backups/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db

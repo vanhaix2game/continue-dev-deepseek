@@ -1,0 +1,76 @@
+# ============================================================
+# Continue Dev Config - Ollama Local (FREE)
+# ============================================================
+# Model: Chay local tren may, hoan toan mien phi
+# Yeu cau: Ollama installed + RAM 8GB+
+# ============================================================
+
+name: Ollama Local Config
+version: 1.0.0
+schema: v1
+
+models:
+  # ── DeepSeek Coder 6.7B (Nhe, nhanh) ───────────────────────
+  - name: "DeepSeek Coder 6.7B (Local)"
+    provider: ollama
+    model: deepseek-coder:6.7b
+    apiBase: http://localhost:11434
+    contextLength: 16384
+    roles:
+      - chat
+      - edit
+      - autocomplete
+    capabilities:
+      - tool_use
+
+  # ── DeepSeek Coder 33B (Manh, cham hon) ────────────────────
+  - name: "DeepSeek Coder 33B (Local)"
+    provider: ollama
+    model: deepseek-coder:33b
+    apiBase: http://localhost:11434
+    contextLength: 16384
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  # ── Qwen Coder 1.5B (Nhe, cho autocomplete) ───────────────
+  - name: "Qwen Coder 1.5B (Autocomplete)"
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://localhost:11434
+    contextLength: 8192
+    roles:
+      - autocomplete
+
+  # ── CodeLlama 13B (Code generation) ───────────────────────
+  - name: "CodeLlama 13B (Local)"
+    provider: ollama
+    model: codellama:13b
+    apiBase: http://localhost:11434
+    contextLength: 16384
+    roles:
+      - chat
+      - edit
+
+  # ── Phi-3 Medium (Balanced) ───────────────────────────────
+  - name: "Phi-3 Medium (Local)"
+    provider: ollama
+    model: phi3:medium
+    apiBase: http://localhost:11434
+    contextLength: 128000
+    roles:
+      - chat
+      - edit
+
+# ── Tab Autocomplete ──────────────────────────────────────────
+tabAutocompleteModel:
+  name: "Qwen Coder 1.5B"
+  provider: ollama
+  model: qwen2.5-coder:1.5b
+  apiBase: http://localhost:11434
+  autocompleteOptions:
+    debounceDelay: 250
+    maxPromptTokens: 1024
+    onlyMyCode: true
