@@ -216,8 +216,10 @@ class ChatGPTBrowser {
   // ── Sending Messages ───────────────────────────────────────────────────────
 
   async sendMessage(text) {
+    logger.dim(`[browser] sendMessage: ${text.length} chars`);
     // Find input element
     const { el, isTextarea } = await this._findInput();
+    logger.dim(`[browser] Input found: isTextarea=${isTextarea}`);
 
     // Click to focus
     await el.click({ force: true });
@@ -230,27 +232,27 @@ class ChatGPTBrowser {
     if (isTextarea) {
       // Standard textarea — use fill() which is reliable
       await el.fill(text);
+      logger.dim(`[browser] Text filled via fill()`);
     } else {
       // contenteditable div — needs execCommand
       await this.page.evaluate((element, content) => {
         element.focus();
-        // Select all and delete
         document.execCommand('selectAll', false, null);
         document.execCommand('delete',    false, null);
-        // Insert text (fires proper input events)
         document.execCommand('insertText', false, content);
-        // Belt-and-suspenders: fire input event manually
         element.dispatchEvent(new InputEvent('input', { bubbles: true, data: content }));
       }, el, text);
+      logger.dim(`[browser] Text filled via execCommand`);
     }
 
     await this.page.waitForTimeout(config.SEND_DELAY);
 
     // Try send button, fall back to Enter
     const clicked = await this._clickSendButton();
+    logger.dim(`[browser] Send button clicked: ${clicked}`);
     if (!clicked) {
-      // ChatGPT uses plain Enter to submit (Shift+Enter for newlines)
       await this.page.keyboard.press('Enter');
+      logger.dim(`[browser] Sent via Enter key`);
     }
 
     await this.page.waitForTimeout(500);
@@ -304,17 +306,32 @@ class ChatGPTBrowser {
     const stableDelay = config.STABLE_DELAY;
     const start       = Date.now();
 
+    logger.dim(`[browser] waitForResponse: timeout=${timeout}ms, stableDelay=${stableDelay}ms`);
+
     // ── Phase 1: wait for a new message to appear ──────────────────────────
     const initialCount = await this._getMessageCount();
+    logger.dim(`[browser] Initial message count: ${initialCount}`);
     let   appeared     = false;
 
     while (Date.now() - start < 12_000) {
       const count = await this._getMessageCount();
-      if (count > initialCount) { appeared = true; break; }
+      if (count > initialCount) {
+        appeared = true;
+        logger.dim(`[browser] New message appeared! Count: ${initialCount} -> ${count}`);
+        break;
+      }
       await this.page.waitForTimeout(400);
     }
 
-    if (!appeared) logger.warn('Response may have been delayed — continuing to wait...');
+    if (!appeared) {
+      logger.warn('Response may have been delayed — continuing to wait...');
+      // Try to get any text from the page as fallback
+      const fallbackText = await this._extractLastMessage();
+      if (fallbackText.length > 0) {
+        logger.dim(`[browser] Fallback text found: ${fallbackText.length} chars`);
+        return this._cleanText(fallbackText);
+      }
+    }
 
     // ── Phase 2: wait for text to stabilise ───────────────────────────────
     let lastText    = '';
@@ -327,11 +344,16 @@ class ChatGPTBrowser {
       if (text !== lastText) {
         lastText    = text;
         stableStart = null;
+        if (text.length > 0 && dotCount === 0) {
+          logger.dim(`[browser] First text received: ${text.length} chars`);
+        }
       } else if (text.length > 0) {
         if (!stableStart) stableStart = Date.now();
         else if (Date.now() - stableStart >= stableDelay) {
-          if (!await this._isGenerating()) break;  // confirmed done
-          stableStart = null;                       // still generating, reset
+          const generating = await this._isGenerating();
+          logger.dim(`[browser] Text stable for ${stableDelay}ms, generating=${generating}`);
+          if (!generating) break;  // confirmed done
+          stableStart = null;      // still generating, reset
         }
       }
 

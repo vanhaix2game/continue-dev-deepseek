@@ -118,16 +118,21 @@ async function runAgentLoop(browser, conversation, prompt, maxIter, res, request
     // Build and send first message
     const dirListing = agent._getWorkingDirListing();
     const firstMsg = conversation.buildFirstMessage(prompt, dirListing);
+    logger.dim(`[proxy] Sending message (${firstMsg.length} chars)...`);
     await browser.sendMessage(firstMsg);
+    logger.dim(`[proxy] Message sent, waiting for response...`);
 
     for (let iter = 1; iter <= maxIter; iter++) {
+      logger.dim(`[proxy] Iteration ${iter}/${maxIter}, waiting for response...`);
       const rawResponse = await browser.waitForResponse();
 
       if (!rawResponse || rawResponse.trim().length === 0) {
+        logger.dim(`[proxy] Empty response, retrying...`);
         await browser.sendMessage('Please continue. If you are waiting for input, proceed with your best judgement.');
         continue;
       }
 
+      logger.dim(`[proxy] Response received (${rawResponse.length} chars)`);
       conversation.addAssistantMessage(rawResponse);
       const parsed = parseResponse(rawResponse);
 
@@ -160,10 +165,11 @@ async function runAgentLoop(browser, conversation, prompt, maxIter, res, request
         continue;
       }
 
-      // Final response → done
-      if (parsed.type === 'final') {
-        return parsed.content;
-      }
+    // Final response → done
+    if (parsed.type === 'final') {
+      logger.dim(`[proxy] Final response (${parsed.content.length} chars)`);
+      return parsed.content;
+    }
     }
 
     return '[Agent reached max iterations without final response]';
