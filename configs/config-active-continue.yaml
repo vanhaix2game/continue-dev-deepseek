@@ -1,0 +1,134 @@
+name: Global Config
+version: 1.0.0
+schema: v1
+models:
+  - name: 9router (Auto)
+    provider: openai
+    model: kr/auto
+    apiBase: http://localhost:20127/v1
+    contextLength: 128000
+    defaultCompletionOptions:
+      maxTokens: 8192
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+  - name: North Mini Code (Free)
+    provider: openrouter
+    model: cohere/north-mini-code:free
+    apiKey: YOUR_OPENROUTER_KEY_1
+    roles:
+      - chat
+      - edit
+      - autocomplete
+    capabilities:
+      - tool_use
+  - name: North Mini Code (Free) - Backup
+    provider: openrouter
+    model: cohere/north-mini-code:free
+    apiKey: YOUR_OPENROUTER_KEY_2
+    roles:
+      - chat
+      - edit
+      - autocomplete
+    capabilities:
+      - tool_use
+  - name: North Mini Code (Free) - Backup 2
+    provider: openrouter
+    model: cohere/north-mini-code:free
+    apiKey: YOUR_OPENROUTER_KEY_3
+    roles:
+      - chat
+      - edit
+      - autocomplete
+    capabilities:
+      - tool_use
+  - name: DeepSeek Flash V4
+    model: deepseek-v4-flash
+    provider: openai
+    apiKey: YOUR_DEEPSEEK_KEY_1
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+  - name: DeepSeek Pro V4
+    model: deepseek-v4-pro
+    provider: openai
+    apiKey: YOUR_DEEPSEEK_KEY_1
+    apiBase: https://api.deepseek.com
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+  - name: GPT-4.1 Mini
+    provider: openai
+    model: gpt-4.1-mini
+    apiKey: YOUR_OPENAI_KEY_1
+  - name: "Google: Gemma 4 26B A4B  (free)"
+    provider: openrouter
+    model: google/gemma-4-26b-a4b-it:free
+    apiKey: YOUR_OPENAI_KEY_1
+    defaultCompletionOptions:
+      maxTokens: 32768
+    capabilities:
+      - tool_use
+  - name: "Google: Gemma 4 31B (free)"
+    provider: openrouter
+    model: google/gemma-4-31b-it:free
+    apiKey: YOUR_DEEPSEEK_KEY_1
+    defaultCompletionOptions:
+      maxTokens: 32768
+    capabilities:
+      - tool_use
+  - name: "NVIDIA: Nemotron 3 Nano 30B A3B (free)"
+    provider: openrouter
+    model: nvidia/nemotron-3-nano-30b-a3b:free
+    apiKey: YOUR_DEEPSEEK_KEY_1
+    capabilities:
+      - tool_use
+  - name: "DeepSeek Free (Browser Agent)"
+    provider: openai
+    model: deepseek-chat-free
+    apiBase: http://localhost:11434/v1
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+  - name: "ChatGPT Free (Browser Agent)"
+    provider: openai
+    model: chatgpt-free
+    apiBase: http://localhost:11435/v1
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+  - name: "ChatGPT Free (Direct)"
+    provider: openai
+    model: chatgpt-free
+    apiBase: http://localhost:11436/v1
+    contextLength: 64000
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+tabAutocompleteModel:
+  name: North Mini Code (Free)
+  provider: openrouter
+  model: cohere/north-mini-code:free
+  apiKey: YOUR_OPENROUTER_KEY_1
+mcpServers:
+  - name: excellm
+    command: python
+    args:
+      - -m
+      - excellm

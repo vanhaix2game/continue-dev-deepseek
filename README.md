@@ -1,144 +1,207 @@
-# Continue Dev + DeepSeek Browser Agent
+# Continue Dev + Browser AI Agents
 
-> **AI Coding Assistant mien phi 100%** - Khong can API key, khong can GPU
+> **AI Coding Assistant miễn phí 100%** — không cần API key, dùng browser (ChatGPT / DeepSeek)
 
-## Overview
+## Tổng quan
 
-Goi nay bao gom:
-- **Continue Dev** - AI coding assistant cho VS Code/JetBrains
-- **DeepSeek Browser Agent** - Su dung DeepSeek qua browser (mien phi)
-- **Nhieu config** - Chon model phu hop voi may cua ban
+Repo này chứa bộ tích hợp **Continue Dev** với 2 browser agent miễn phí:
 
-## Quick Start
+| Agent | Công nghệ | Thư mục | Kết quả |
+|-------|-----------|---------|---------|
+| **ChatGPT (khuyên dùng)** | Puppeteer CDP + daemon, REAL Chrome profile | `chatgpt-browser-agent-master/` | ✅ Chạy tốt — chat + agentic loop |
+| **DeepSeek** | Playwright persistent browser | `deepseek-browser-agent/` | Dual-mode (interactive + proxy) |
 
-### Windows (PowerShell)
+Ngoài ra còn nhiều config cho các nguồn model khác (OpenRouter free, Ollama local, API trả phí).
+
+---
+
+## 🔥 ChatGPT Browser Agent (hoạt động tốt nhất)
+
+### Kiến trúc
+
+```
+Continue Dev (VS Code)
+      │  OpenAI-compatible API: http://localhost:11436/v1
+      ▼
+openai-proxy.js  ──►  chatgpt daemon (chatgpt.js)
+      │                    │  Puppeteer CDP connect
+      │                    ▼
+      │           Chrome REAL profile: ~/.chatgpt-cdp-profile
+      │           (Port 9222, không automation flags)
+      ▼
+   chatgpt.com (tài khoản đã login)
+```
+
+**Bí quyết chống bot detection:**
+- Chrome khởi động như **process OS bình thường** (không phải puppeteer.launch → không có automation flags)
+- Kết nối qua **CDP** (`--remote-debugging-port=9222` + `puppeteer.connect`)
+- Dùng **real Chrome profile** chứa session ChatGPT đã login
+- Thư mục profile phải **khác thư mục mặc định** của Chrome (Chrome từ chối remote debugging trên `User Data` gốc)
+
+### Cài đặt
+
 ```powershell
-git clone https://github.com/vanhaix2game/continue-dev-deepseek.git
-cd continue-dev-deepseek
-.\scripts\install.ps1
+cd "D:\Project\AI\Continue dev\chatgpt-browser-agent-master"
+npm install
 ```
 
-### Linux/macOS
-```bash
-git clone https://github.com/vanhaix2game/continue-dev-deepseek.git
-cd continue-dev-deepseek
-chmod +x scripts/install.sh
-./scripts/install.sh
+### Setup login (1 lần, dùng Chrome THẬT)
+
+```powershell
+# 1. Xóa Chrome cũ
+taskkill /IM chrome.exe /F
+
+# 2. Copy profile có session ChatGPT (nếu có) sang thư mục non-default
+$src  = "$env:LOCALAPPDATA\Google\Chrome\User Data\Profile 12"   # profile bạn hay dùng cho ChatGPT
+$dst  = "$env:USERPROFILE\.chatgpt-cdp-profile\Default"
+New-Item -ItemType Directory -Path $dst -Force
+Copy-Item "$src\*" $dst -Recurse -Force
+
+# 3. Mở Chrome với debug port
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 `
+  --no-first-run --no-default-browser-check `
+  --user-data-dir="$env:USERPROFILE\.chatgpt-cdp-profile" "https://chatgpt.com"
+
+# 4. LOGIN ChatGPT trong cửa sổ Chrome đó (Chrome thật nên không bị chặn)
 ```
 
-### Manual Install
+> Nếu chưa có profile nào login sẵn: mở Chrome (bước 3) rồi login thủ công bình thường — là được, vì đây là Chrome thật.
 
-1. **Cai VS Code**: https://code.visualstudio.com/
-2. **Cai Continue Dev**: VS Code > Extensions > tim "Continue"
-3. **Cai Node.js**: https://nodejs.org/
-4. **Cai DeepSeek Browser Agent**:
-   ```bash
-   cd deepseek-browser-agent
-   npm install
-   ```
-5. **Copy config**:
-   ```powershell
-   Copy-Item configs\config-combined.yaml "$env:USERPROFILE\.continue\config.yaml"
-   ```
-6. **Chay proxy**:
-   ```bash
-   node src/index.js --proxy
-   ```
-7. **Mo VS Code** > Continue Dev > chon model **"DeepSeek Free (Browser)"**
+### Cách dùng
 
-## Models
+#### A) Chat với Continue Dev
+```powershell
+cd "D:\Project\AI\Continue dev\chatgpt-browser-agent-master"
+node launcher.js
+```
+Trong Continue Dev chọn model **"ChatGPT Free (Direct)"**.
 
-### Mien phi 100%
+#### B) Agentic loop (ChatGPT tự chạy lệnh + sửa file)
+```powershell
+cd "D:\Project\AI\Continue dev\chatgpt-browser-agent-master"
+node agent.js --auto --cwd "D:\path\to\project" "task mô tả"
+```
+- ChatGPT dùng `===RUN: <lệnh>===` → agent chạy shell, feed output lại
+- ChatGPT dùng `===FILE: path===...===ENDFILE===` → agent ghi file
+- `--auto`: không hỏi xác nhận. Bỏ `--auto`: duyệt từng lệnh/file.
+- `--check "go build ./..."`: chạy lệnh kiểm tra sau mỗi lần sửa file, nếu fail thì gửi output lại cho ChatGPT tự sửa.
 
-| Model | Nguon | Yeu cau |
-|-------|-------|---------|
-| DeepSeek Free (Browser) | Browser agent | Node.js, Chrome |
-| DeepSeek Coder 6.7B | Ollama local | RAM 8GB+ |
-| Qwen Coder 32B | OpenRouter | API key free |
+#### C) MCP server (dùng từ OpenCode / Claude Desktop)
+```json
+{
+  "mcp": {
+    "chatgpt": {
+      "type": "local",
+      "command": "node",
+      "args": ["D:/Project/AI/Continue dev/chatgpt-browser-agent-master/mcp-server.js"]
+    }
+  }
+}
+```
+Tools: `chatgpt_ask`, `chatgpt_status`, `chatgpt_stop`.
 
-### Gan nhu mien phi
-
-| Model | Cost | Nguon |
-|-------|------|-------|
-| DeepSeek V4 Flash | $0.14/1M tokens | DeepSeek API |
-| DeepSeek V4 Pro | $0.87/1M tokens | DeepSeek API |
-
-## Configs
-
-Chon config phu hop trong `configs/`:
-
-| File | Mo ta |
+### Các file chính
+| File | Mô tả |
 |------|-------|
-| `config-free-browser.yaml` | DeepSeek Browser Agent (mien phi) |
-| `config-ollama-local.yaml` | Ollama local (mien phi, can RAM) |
-| `config-openrouter-free.yaml` | OpenRouter free models |
-| `config-combined.yaml` | Tat ca models (recommended) |
+| `chatgpt.js` | Daemon CLI (launch/CDP, send prompt, stream wait) |
+| `openai-proxy.js` | OpenAI-compatible proxy (port 11436) cho Continue Dev |
+| `agent.js` | Agentic loop (===RUN=== / ===FILE===) |
+| `mcp-server.js` | MCP server (JSON-RPC stdio) cho OpenCode/Claude |
+| `launcher.js` | 1 lệnh khởi động Chrome + proxy |
 
-Copy file config vao:
+---
+
+## DeepSeek Browser Agent
+
+Playwright-based, dual-mode:
+
+```powershell
+cd deepseek-browser-agent
+npm install
+node src/index.js --proxy          # proxy mode (port 11434)
+node src/index.js --task "..."     # interactive mode
+```
+
+> Lưu ý: DeepSeek agent dùng `chat.deepseek.com`. Chrome mở ra → login → Enter.
+
+---
+
+## Continue Dev Config
+
+Tất cả config lưu trong `configs/`:
+
+| File | Mô tả |
+|------|-------|
+| `config-active-continue.yaml` | **Config ĐANG DÙNG** (backup từ `~/.continue/config.yaml`) |
+| `config-free-browser.yaml` | DeepSeek/Playwright browser agents |
+| `config-ollama-local.yaml` | Ollama local |
+| `config-openrouter-free.yaml` | OpenRouter free models |
+| `config-combined.yaml` | Tổng hợp nhiều nguồn |
+
+### Vị trí config
 - **Windows**: `%USERPROFILE%\.continue\config.yaml`
 - **Linux/macOS**: `~/.continue/config.yaml`
 
-## Architecture
-
-```
-VS Code / Continue Dev
-        |
-        v
-  OpenAI API (localhost:11434)
-        |
-        v
-  DeepSeek Browser Agent (proxy)
-        |
-        v
-  Chrome Browser (chat.deepseek.com)
+### Model "ChatGPT Free (Direct)" — config đang dùng
+```yaml
+- name: "ChatGPT Free (Direct)"
+  provider: openai
+  model: chatgpt-free
+  apiBase: http://localhost:11436/v1
+  contextLength: 64000
+  roles: [chat, edit, apply]
+  capabilities: [tool_use]
 ```
 
-## Usage
-
-### Chay DeepSeek Browser Agent
-```bash
-cd deepseek-browser-agent
-node src/index.js --proxy
-```
-
-### Chon model trong Continue Dev
-1. Mo Continue Dev chat (Ctrl+Shift+P > "Continue: Open Chat")
-2. Nhap tin nhan binh thuong
-3. De chon model khac: nhan ten model o tren cung
-
-### Chay Ollama local
-```bash
-# Cai Ollama
-winget install Ollama.Ollama  # Windows
-brew install ollama           # macOS
-
-# Tai model
-ollama pull deepseek-coder:6.7b
-
-# Chay
-ollama serve
-```
+---
 
 ## Troubleshooting
 
-### Proxy khong ket noi
-- Kiem tra: `http://localhost:11434/v1/status`
-- Restart proxy: `node src/index.js --proxy`
+### `DevTools remote debugging requires a non-default data directory`
+Chrome từ chối debug port khi `--user-data-dir` trỏ vào **User Data gốc**. Dùng thư mục riêng: `--user-data-dir="%USERPROFILE%\.chatgpt-cdp-profile"`.
 
-### Continue Dev khong thay model
-- Ctrl+Shift+P > "Continue: Refresh Models"
-- Restart VS Code
+### `Chrome debug port 9222 did not open`
+Chrome đang mở chiếm profile. Xóa Chrome + dọn Singleton lock:
+```powershell
+taskkill /IM chrome.exe /F
+Remove-Item "$env:USERPROFILE\.chatgpt-cdp-profile\Singleton*" -Force -EA SilentlyContinue
+```
+Rồi chạy lại launcher.
 
-### Browser bi loi
-- Xoa session: `Remove-Item -Recurse $env:USERPROFILE\.deepseek-agent\session`
-- Chay lai proxy va login lai
+### `Daemon busy — try again in a moment`
+Daemon xử lý 1 request/lần. Dừng proxy khi chạy agent nặng, hoặc đợi request trước xong.
+
+### `Not logged in`
+Chrome cần login ChatGPT. Mở cửa sổ do launcher tạo ra, login, quay lại. Nếu login bị chặn "Try a different browser" → đảm bảo Chrome mở bằng `--remote-debugging-port` + real profile (không dùng profile mặc định), KHÔNG quyền admin.
+
+### Xóa toàn bộ session để setup lại
+```powershell
+Remove-Item "$env:USERPROFILE\.chatgpt-cdp-profile" -Recurse -Force
+```
+
+---
+
+## Quy trình khởi động nhanh (sau khi đã setup login)
+
+```powershell
+taskkill /IM chrome.exe /F                             # dọn Chrome cũ (nếu có)
+cd "D:\Project\AI\Continue dev\chatgpt-browser-agent-master"
+node launcher.js                                       # Chrome + proxy tự bật
+```
+→ Chọn model **"ChatGPT Free (Direct)"** trong Continue Dev.
+
+Cho agentic loop:
+```powershell
+node agent.js --auto --cwd "path\to\project" "task"
+```
+
+---
 
 ## License
 
-MIT License
+MIT
 
 ## Credits
-
 - [Continue Dev](https://continue.dev/)
-- [DeepSeek](https://deepseek.com/)
+- [chatgpt-browser-agent](https://github.com/abdallhMoukdad/chatgpt-browser-agent) (nền tảng CDP/daemon)
 - [DeepSeek Browser Agent](https://github.com/Omar-Azam/deepseek-browser-agent)
