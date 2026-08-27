@@ -76,8 +76,9 @@ class DeepSeekBrowser {
   async launch() {
     logger.info('Launching browser with persistent session...');
 
-    // Use agent-specific session dir to avoid conflict with running Chrome
-    const sessionDir = path.resolve(config.SESSION_DIR) + '_agent';
+    // Use agent-specific session dir with unique suffix to avoid conflict
+    const sessionId = 'deepseek_agent_' + Date.now();
+    const sessionDir = path.resolve(config.SESSION_DIR) + '_' + sessionId;
 
     this.context = await chromium.launchPersistentContext(sessionDir, {
       headless      : config.HEADLESS,

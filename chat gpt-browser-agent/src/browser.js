@@ -12,46 +12,43 @@ const logger       = require('./logger');
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEL = {
-  // Text input where the user types (ChatGPT uses contenteditable div)
+  // Text input where the user types (ChatGPT uses textarea with wm-composer)
   chatInput: [
-    '#prompt-textarea',
-    'div[contenteditable="true"]',
+    '#mobile-composer-prompt',
+    'textarea.wm-composer-textarea',
+    'textarea[placeholder="Ask ChatGPT"]',
+    'textarea[aria-label="Chat with ChatGPT"]',
     'textarea[placeholder]',
     'textarea',
+    'div[contenteditable="true"]',
     '[contenteditable="true"][role="textbox"]',
   ],
 
   // Button that submits the message
   sendButton: [
+    'button[aria-label="Send message"]',
+    'button.wm-composer-submitButton',
     'button[data-testid="send-button"]',
-    'button[aria-label="Send prompt"]',
     'button[aria-label*="Send" i]',
-    'button[aria-label*="send" i]',
     'form button[type="submit"]',
-    '[class*="send-btn"]',
-    '[class*="sendBtn"]',
-    '[class*="send-button"]',
   ],
 
   // "Stop generating" button — visible while streaming
   stopButton: [
     'button[aria-label="Stop generating"]',
+    'button[aria-label="Stop"]',
     'button[data-testid="stop-button"]',
     'button[aria-label*="Stop" i]',
-    '[aria-label*="stop generating" i]',
-    '[class*="stop-btn"]',
-    '[class*="stopBtn"]',
+    'button.wm-composer-stopButton',
   ],
 
   // "New chat" / "New conversation" button in sidebar
   newChat: [
     'a[href="/"]',
-    'nav a',
     'button[aria-label*="New chat" i]',
     'button[aria-label*="New conversation" i]',
+    'nav a',
     '[data-testid="new-chat"]',
-    '[class*="new-chat"]',
-    '[class*="newChat"]',
   ],
 
   // The main chat messages container
@@ -80,8 +77,9 @@ class ChatGPTBrowser {
   async launch() {
     logger.info('Launching browser with persistent session...');
 
-    // Use agent-specific session dir to avoid conflict with running Chrome
-    const sessionDir = path.resolve(config.SESSION_DIR) + '_agent';
+    // Use agent-specific session dir with unique suffix to avoid conflict
+    const sessionId = 'chatgpt_agent_' + Date.now();
+    const sessionDir = path.resolve(config.SESSION_DIR) + '_' + sessionId;
 
     this.context = await chromium.launchPersistentContext(sessionDir, {
       headless      : config.HEADLESS,
@@ -265,7 +263,7 @@ class ChatGPTBrowser {
         if (!el) continue;
         const tagName          = await el.evaluate(e => e.tagName.toLowerCase());
         const isContentEditable = await el.evaluate(e => e.isContentEditable);
-        return { el, isTextarea: tagName === 'textarea' && !isContentEditable };
+        return { el, isTextarea: tagName === 'textarea' || !isContentEditable };
       } catch {}
     }
     throw new Error(
@@ -531,7 +529,9 @@ class ChatGPTBrowser {
       // Strip copy-code button artifacts like "1CopyRunInsert"
       .replace(/^\d+(?:Copy|Run|Insert|Edit)\b.*$/gm, '')
       // Strip "Show more" / "Copy code" / "Rate this response" UI artifacts
-      .replace(/(?:Copy code|Show more|Show less|Rate this response|Good response|Bad response|Share|Edit|Regenerate).*/gm, '')
+      .replace(/(?:Copy code|Show more|Show less|Rate this response|Good response|Bad response|Share|Edit|Regenerate|Stop generating).*/gm, '')
+      // Strip wm-composer artifacts
+      .replace(/Ask ChatGPT/g, '')
       // Collapse 3+ blank lines into 2
       .replace(/\n{3,}/g, '\n\n')
       .trim();
