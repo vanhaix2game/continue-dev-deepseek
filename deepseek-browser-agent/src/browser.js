@@ -171,8 +171,36 @@ class DeepSeekBrowser {
 
     if (needsLogin) {
       this._printLoginBanner();
-      await this._waitForEnter();
-      await this.page.waitForTimeout(2_000);
+      await this._waitForLogin();
+    }
+  }
+
+  async _waitForLogin() {
+    const pollMs = 3_000;
+    const maxMs  = 15 * 60_000;
+    const t0     = Date.now();
+    while (true) {
+      await this.page.waitForTimeout(pollMs);
+      const stillNeedsLogin = await this.page.evaluate(() => {
+        const url = window.location.href;
+        const bodyText = document.body?.innerText || '';
+        return (
+          url.includes('/auth') ||
+          url.includes('/login') ||
+          url.includes('/sign') ||
+          bodyText.includes('Sign in') ||
+          bodyText.includes('Log in') ||
+          !!document.querySelector('input[type="password"]')
+        );
+      });
+      if (!stillNeedsLogin) {
+        logger.info('LOGIN OK — session saved.');
+        return;
+      }
+      if (Date.now() - t0 > maxMs) {
+        logger.error('Login timeout after 15 min — exiting.');
+        process.exit(1);
+      }
     }
   }
 
