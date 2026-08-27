@@ -1,0 +1,45 @@
+{
+  "name": "chatgpt-browser-agent",
+  "version": "1.0.0",
+  "description": "AI coding agent powered by ChatGPT via browser automation — no API key needed",
+  "main": "src/index.js",
+  "bin": {
+    "chatgpt-agent": "src/index.js",
+    "cga": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "daemon": "node src/index.js --daemon",
+    "proxy": "node src/index.js --proxy",
+    "postinstall": "node src/postinstall.js",
+    "debug": "node src/index.js --debug",
+    "calibrate": "node src/calibrate.js"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "playwright": "^1.45.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "chatgpt",
+    "browser-automation",
+    "coding-agent",
+    "cli",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chatgpt-browser-agent/chatgpt-browser-agent"
+  },
+  "homepage": "https://github.com/chatgpt-browser-agent/chatgpt-browser-agent#readme"
+}

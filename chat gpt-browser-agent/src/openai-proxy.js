@@ -1,4 +1,4 @@
-// src/openai-proxy.js — OpenAI-compatible API proxy for DeepSeek Browser Agent
+// src/openai-proxy.js — OpenAI-compatible API proxy for ChatGPT Browser Agent
 // Fully compatible with Continue Dev: streaming, tool calling, conversation
 'use strict';
 
@@ -7,7 +7,7 @@ const fs        = require('fs');
 const path      = require('path');
 const config    = require('./config');
 const logger    = require('./logger');
-const DeepSeekAgent = require('./agent');
+const ChatGPTAgent = require('./agent');
 const { ConversationManager, buildSystemPrompt } = require('./prompt');
 
 const PROXY_PORT = config.PROXY_PORT || 11434;
@@ -199,7 +199,7 @@ async function handleStreaming(res, requestId, modelId, prompt, session) {
   try {
     // Ensure agent is ready
     if (!agent) {
-      agent = new DeepSeekAgent({ saveLog: false });
+      agent = new ChatGPTAgent({ saveLog: false });
       await agent.init();
     }
 
@@ -271,7 +271,7 @@ async function handleStreaming(res, requestId, modelId, prompt, session) {
 async function handleNonStreaming(res, requestId, modelId, prompt, session) {
   try {
     if (!agent) {
-      agent = new DeepSeekAgent({ saveLog: false });
+      agent = new ChatGPTAgent({ saveLog: false });
       await agent.init();
     }
 
@@ -343,7 +343,7 @@ async function handleChatCompletion(req, res) {
     session.busy = true;
 
     const requestId = generateId();
-    const modelId   = model || 'deepseek-chat-free';
+    const modelId   = model || 'chatgpt-free';
     const prompt    = messagesToPrompt(messages);
 
     logger.info(`Proxy: Request ${requestId.slice(-8)} (${messages.length} msgs, stream=${stream})`);
@@ -383,7 +383,7 @@ async function handleRequest(req, res) {
   if (url.pathname === '/' && req.method === 'GET') {
     return sendJson(res, 200, {
       status: 'ok',
-      service: 'DeepSeek Browser Agent - OpenAI Proxy',
+      service: 'ChatGPT Browser Agent - OpenAI Proxy',
       compatible: 'Continue Dev, OpenCode, any OpenAI client',
     });
   }
@@ -393,9 +393,9 @@ async function handleRequest(req, res) {
     return sendJson(res, 200, {
       object: 'list',
       data: [
-        { id: 'deepseek-chat-free', object: 'model', owned_by: 'deepseek-browser' },
-        { id: 'deepseek-v4-flash',  object: 'model', owned_by: 'deepseek-browser' },
-        { id: 'deepseek-v4-pro',   object: 'model', owned_by: 'deepseek-browser' },
+        { id: 'chatgpt-free',   object: 'model', owned_by: 'chatgpt-browser' },
+        { id: 'chatgpt-4o',     object: 'model', owned_by: 'chatgpt-browser' },
+        { id: 'chatgpt-4o-pro', object: 'model', owned_by: 'chatgpt-browser' },
       ],
     });
   }
@@ -424,13 +424,13 @@ async function startProxy(opts = {}) {
   const port = opts.port || PROXY_PORT;
 
   logger.banner();
-  logger.info(`Starting DeepSeek OpenAI Proxy (Continue Dev compatible)...`);
+  logger.info(`Starting ChatGPT OpenAI Proxy (Continue Dev compatible)...`);
   logger.info(`Port: ${port}`);
   console.log('');
 
   // Launch browser
   config.HEADLESS = false;
-  agent = new DeepSeekAgent({ saveLog: false });
+  agent = new ChatGPTAgent({ saveLog: false });
   await agent.init();
   logger.success('Browser ready!\n');
 
@@ -441,9 +441,9 @@ async function startProxy(opts = {}) {
     console.log('');
     logger.info('Continue Dev config.yaml:');
     console.log(`
-  - name: "DeepSeek Free (Browser)"
+  - name: "ChatGPT Free (Browser)"
     provider: openai
-    model: deepseek-chat-free
+    model: chatgpt-free
     apiBase: http://localhost:${port}/v1
     contextLength: 64000
     roles:

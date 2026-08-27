@@ -1,4 +1,4 @@
-// src/browser.js — Playwright controller for chat.deepseek.com
+// src/browser.js — Playwright controller for chatgpt.com
 'use strict';
 
 const { chromium } = require('playwright');
@@ -8,25 +8,26 @@ const logger       = require('./logger');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Selector banks — ordered by likelihood, with fallbacks
-//  We never depend on a single selector; DeepSeek's UI can change.
+//  We never depend on a single selector; ChatGPT's UI can change.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEL = {
-  // Text input where the user types
+  // Text input where the user types (ChatGPT uses contenteditable div)
   chatInput: [
-    '#chat-input',
+    '#prompt-textarea',
+    'div[contenteditable="true"]',
     'textarea[placeholder]',
     'textarea',
     '[contenteditable="true"][role="textbox"]',
-    '[contenteditable="true"]',
   ],
 
   // Button that submits the message
   sendButton: [
+    'button[data-testid="send-button"]',
+    'button[aria-label="Send prompt"]',
     'button[aria-label*="Send" i]',
     'button[aria-label*="send" i]',
-    '[data-testid="send-button"]',
-    'button[type="submit"]',
+    'form button[type="submit"]',
     '[class*="send-btn"]',
     '[class*="sendBtn"]',
     '[class*="send-button"]',
@@ -34,18 +35,20 @@ const SEL = {
 
   // "Stop generating" button — visible while streaming
   stopButton: [
+    'button[aria-label="Stop generating"]',
+    'button[data-testid="stop-button"]',
     'button[aria-label*="Stop" i]',
     '[aria-label*="stop generating" i]',
-    '[data-testid="stop-button"]',
     '[class*="stop-btn"]',
     '[class*="stopBtn"]',
   ],
 
   // "New chat" / "New conversation" button in sidebar
   newChat: [
+    'a[href="/"]',
+    'nav a',
     'button[aria-label*="New chat" i]',
     'button[aria-label*="New conversation" i]',
-    'a[href="/"][aria-label]',
     '[data-testid="new-chat"]',
     '[class*="new-chat"]',
     '[class*="newChat"]',
@@ -53,18 +56,19 @@ const SEL = {
 
   // The main chat messages container
   messageContainer: [
+    '[data-message-author-role="assistant"]',
+    '.markdown',
+    'article',
     '[class*="chat-content"]',
-    '[class*="message-list"]',
-    '[class*="conversation"]',
     'main',
   ],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  DeepSeekBrowser class
+//  ChatGPTBrowser class
 // ─────────────────────────────────────────────────────────────────────────────
 
-class DeepSeekBrowser {
+class ChatGPTBrowser {
   constructor() {
     this.context  = null;
     this.page     = null;
@@ -107,7 +111,7 @@ class DeepSeekBrowser {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
     });
 
-    await this._navigate(config.DEEPSEEK_URL);
+    await this._navigate(config.CHATGPT_URL);
     await this._ensureLoggedIn();
 
     logger.success('Browser ready!');
@@ -147,8 +151,8 @@ class DeepSeekBrowser {
     } catch {}
 
     // Fallback: navigate to home which usually opens a fresh chat
-    await this._navigate(config.DEEPSEEK_URL);
-    logger.dim('Navigated to DeepSeek home (new chat)');
+    await this._navigate(config.CHATGPT_URL);
+    logger.dim('Navigated to ChatGPT home (new chat)');
   }
 
   // ── Login handling ─────────────────────────────────────────────────────────
@@ -160,6 +164,7 @@ class DeepSeekBrowser {
       const url = window.location.href;
       const bodyText = document.body?.innerText || '';
       return (
+        url.includes('/auth/login') ||
         url.includes('/auth') ||
         url.includes('/login') ||
         url.includes('/sign') ||
@@ -181,7 +186,7 @@ class DeepSeekBrowser {
     logger.warn('╔══════════════════════════════════════════════╗');
     logger.warn('║  🔐  LOGIN REQUIRED                          ║');
     logger.warn('║                                              ║');
-    logger.warn('║  1. Log in to DeepSeek in the browser window ║');
+    logger.warn('║  1. Log in to ChatGPT in the browser window  ║');
     logger.warn('║  2. Return here and press  ENTER  to continue║');
     logger.warn('╚══════════════════════════════════════════════╝');
     console.log('');
@@ -246,7 +251,7 @@ class DeepSeekBrowser {
     // Try send button, fall back to Enter
     const clicked = await this._clickSendButton();
     if (!clicked) {
-      // DeepSeek uses plain Enter to submit (Shift+Enter for newlines)
+      // ChatGPT uses plain Enter to submit (Shift+Enter for newlines)
       await this.page.keyboard.press('Enter');
     }
 
@@ -264,7 +269,7 @@ class DeepSeekBrowser {
       } catch {}
     }
     throw new Error(
-      'Cannot find the DeepSeek chat input box.\n' +
+      'Cannot find the ChatGPT chat input box.\n' +
       '  → Make sure the page is fully loaded and you are logged in.\n' +
       '  → Run with --debug to inspect DOM selectors.\n' +
       '  → Run: node src/calibrate.js to auto-detect selectors.'
@@ -287,7 +292,7 @@ class DeepSeekBrowser {
   // ── Waiting for Response ───────────────────────────────────────────────────
 
   /**
-   * Wait until DeepSeek finishes generating and return the response text.
+   * Wait until ChatGPT finishes generating and return the response text.
    *
    * Algorithm:
    *  1. Record how many assistant messages are on the page right now.
@@ -351,12 +356,12 @@ class DeepSeekBrowser {
   async _getMessageCount() {
     return await this.page.evaluate(() => {
       const candidates = [
+        '[data-message-author-role="assistant"]',
         '[class*="assistant"][class*="message"]',
         '[data-role="assistant"]',
-        '[class*="markdown-content"]',
-        '.ds-markdown',
+        '.markdown',
+        'article',
         '[class*="chat-message"]',
-        '[class*="message-bubble"]',
       ];
       for (const sel of candidates) {
         const els = document.querySelectorAll(sel);
@@ -423,14 +428,14 @@ class DeepSeekBrowser {
         return result.trim();
       }
 
-      // ── Attempt 1: Specific assistant-message selectors ──────────────────
+      // ── Attempt 1: ChatGPT-specific assistant-message selectors ──────────
       const directSelectors = [
-        '.ds-markdown',
+        '[data-message-author-role="assistant"]',
+        '.markdown',
+        'article .markdown',
+        '[data-message-author-role="assistant"] .markdown',
         '[class*="assistant"] [class*="markdown"]',
         '[class*="assistant"] [class*="content"]',
-        '[data-role="assistant"] [class*="content"]',
-        '[class*="ai-message"] [class*="content"]',
-        '[class*="bot-message"] [class*="content"]',
         '[class*="response-content"]',
         '[class*="message-content"]:last-child',
       ];
@@ -454,7 +459,7 @@ class DeepSeekBrowser {
 
       // ── Attempt 3: Heuristic — large non-user text blocks ────────────────
       const allBlocks = Array.from(
-        document.querySelectorAll('[class*="message"], [class*="chat-item"], [class*="turn"]')
+        document.querySelectorAll('[class*="message"], [class*="chat-item"], [class*="turn"], article')
       );
       const candidates = allBlocks.filter(el => {
         const cls = el.className || '';
@@ -474,11 +479,13 @@ class DeepSeekBrowser {
     });
   }
 
-  /** True if DeepSeek is still streaming / generating */
+  /** True if ChatGPT is still streaming / generating */
   async _isGenerating() {
     return await this.page.evaluate(() => {
       // Check for stop button
       const stopSelectors = [
+        'button[aria-label="Stop generating"]',
+        'button[data-testid="stop-button"]',
         'button[aria-label*="Stop" i]',
         '[class*="stop-gen"]',
         '[class*="stopGen"]',
@@ -521,12 +528,10 @@ class DeepSeekBrowser {
     if (!text) return '';
 
     return text
-      // Strip DeepSeek R1 chain-of-thought blocks
-      .replace(/<think>[\s\S]*?<\/think>\n?/gi, '')
-      // Strip "Thinking..." headers that sometimes prefix responses
-      .replace(/^Thinking\.{0,3}\n[\s\S]*?\n\n/m, '')
       // Strip copy-code button artifacts like "1CopyRunInsert"
       .replace(/^\d+(?:Copy|Run|Insert|Edit)\b.*$/gm, '')
+      // Strip "Show more" / "Copy code" / "Rate this response" UI artifacts
+      .replace(/(?:Copy code|Show more|Show less|Rate this response|Good response|Bad response|Share|Edit|Regenerate).*/gm, '')
       // Collapse 3+ blank lines into 2
       .replace(/\n{3,}/g, '\n\n')
       .trim();
@@ -579,10 +584,10 @@ class DeepSeekBrowser {
   }
 
   /** Take a screenshot (for debugging) */
-  async screenshot(filePath = '/tmp/deepseek-agent-debug.png') {
+  async screenshot(filePath = '/tmp/chatgpt-agent-debug.png') {
     await this.page.screenshot({ path: filePath, fullPage: false });
     logger.info(`Screenshot saved: ${filePath}`);
   }
 }
 
-module.exports = DeepSeekBrowser;
+module.exports = ChatGPTBrowser;

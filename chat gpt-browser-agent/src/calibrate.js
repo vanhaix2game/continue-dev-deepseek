@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// src/calibrate.js — Auto-detect DeepSeek UI selectors and update browser.js
+// src/calibrate.js — Auto-detect ChatGPT UI selectors and update browser.js
 'use strict';
 
 const { chromium } = require('playwright');
@@ -7,8 +7,8 @@ const path         = require('path');
 const fs           = require('fs');
 const config       = require('./config');
 
-console.log('\n🔬  DeepSeek Agent — Selector Calibration Tool\n');
-console.log('This tool opens DeepSeek, inspects the DOM, and prints out');
+console.log('\n🔬  ChatGPT Agent — Selector Calibration Tool\n');
+console.log('This tool opens ChatGPT, inspects the DOM, and prints out');
 console.log('the selectors that your browser.js should use.\n');
 
 async function calibrate() {
@@ -21,8 +21,8 @@ async function calibrate() {
   const pages = context.pages();
   const page  = pages.length > 0 ? pages[0] : await context.newPage();
 
-  console.log('→ Navigating to', config.DEEPSEEK_URL, '...');
-  await page.goto(config.DEEPSEEK_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+  console.log('→ Navigating to', config.CHATGPT_URL, '...');
+  await page.goto(config.CHATGPT_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
   await page.waitForTimeout(3_000);
 
   console.log('→ Inspecting DOM...\n');
@@ -74,6 +74,7 @@ async function calibrate() {
 
     // ── Suggested selectors ───────────────────────────────────────────────
     const suggestedInput = (
+      inputs.find(i => i.id === 'prompt-textarea')?.id ||
       inputs.find(i => i.placeholder?.toLowerCase().includes('message'))?.id ||
       inputs.find(i => i.placeholder?.toLowerCase().includes('ask'))?.id ||
       inputs.find(i => i.visible)?.id ||
@@ -81,12 +82,14 @@ async function calibrate() {
     );
 
     const sendBtn = buttons.find(b =>
+      b.dataTestId === 'send-button' ||
       /send/i.test(b.ariaLabel || '') ||
       /send/i.test(b.text || '') ||
       /send/i.test(b.classes || '')
     );
 
     const stopBtn = buttons.find(b =>
+      b.dataTestId === 'stop-button' ||
       /stop/i.test(b.ariaLabel || '') ||
       /stop/i.test(b.text || '') ||
       /stop/i.test(b.classes || '')
@@ -144,13 +147,17 @@ async function calibrate() {
     console.log(`  chatInput  : '#${s.suggestedInput}'  (or use the id above)`);
   }
   if (s.sendBtn) {
-    const sel = s.sendBtn.ariaLabel
+    const sel = s.sendBtn.dataTestId
+      ? `[data-testid="${s.sendBtn.dataTestId}"]`
+      : s.sendBtn.ariaLabel
       ? `button[aria-label="${s.sendBtn.ariaLabel}"]`
       : s.sendBtn.id ? `#${s.sendBtn.id}` : `.${s.sendBtn.classes?.split(' ')[0]}`;
     console.log(`  sendButton : '${sel}'`);
   }
   if (s.stopBtn) {
-    const sel = s.stopBtn.ariaLabel
+    const sel = s.stopBtn.dataTestId
+      ? `[data-testid="${s.stopBtn.dataTestId}"]`
+      : s.stopBtn.ariaLabel
       ? `button[aria-label="${s.stopBtn.ariaLabel}"]`
       : `.${s.stopBtn.classes?.split(' ')[0]}`;
     console.log(`  stopButton : '${sel}'`);
@@ -163,8 +170,8 @@ async function calibrate() {
   }
 
   console.log(sep);
-  console.log('\n📸  Taking screenshot → /tmp/deepseek-calibrate.png');
-  await page.screenshot({ path: '/tmp/deepseek-calibrate.png', fullPage: false });
+  console.log('\n📸  Taking screenshot → /tmp/chatgpt-calibrate.png');
+  await page.screenshot({ path: '/tmp/chatgpt-calibrate.png', fullPage: false });
 
   console.log('\n✅  Calibration complete! Update src/browser.js SEL object with the selectors above.');
   console.log('    Press Ctrl+C to exit.\n');
