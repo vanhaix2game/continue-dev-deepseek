@@ -1,0 +1,9 @@
+{
+  "$comment": "MCP servers cho agent.js. Thêm/đổi server theo nhu cầu. Cú pháp tool: ===MCP: <server>.<tool>=== <json args> ===ENDMCP===",
+  "mcpServers": {
+    "excellm": {
+      "command": "python",
+      "args": ["-m", "excellm"]
+    }
+  }
+}

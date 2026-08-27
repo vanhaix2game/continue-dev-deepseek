@@ -8,6 +8,7 @@ const http          = require('http');
 const https         = require('https');
 const config        = require('./config');
 const backup        = require('./backup');
+const mcp           = require('./mcp');
 
 // ─────────────────────────────────────────────
 //  Helpers
@@ -605,6 +606,27 @@ const TOOLS = {
         req.on('error', reject);
         req.setTimeout(15_000, () => { req.destroy(); reject(new Error('URL fetch timed out')); });
       });
+    },
+  },
+
+  // ── MCP Tool Call (live Excel automation) ────────────────────────────────
+  mcp_call: {
+    description:
+      'Call an MCP server tool. Server "excellm" = LIVE Excel automation via COM' +
+      ' (34 tools): list_open_workbooks, read (read cells/ranges), write, search,' +
+      ' manage_sheet, select_range, format, insert, delete, copy_range, sort_range,' +
+      ' find_replace, explore, inspect_workbook, create_table, create_chart,' +
+      ' create_pivot_table, execute_vba, capture_sheet, ... Excel must be running' +
+      ' with at least one workbook open.',
+    parameters: {
+      server: { type: 'string', required: true, description: 'MCP server name (e.g. "excellm")' },
+      tool  : { type: 'string', required: true, description: 'Tool name (e.g. "list_open_workbooks", "read", "write", "search")' },
+      args  : { type: 'object', required: false, description: 'Tool arguments as a JSON object (e.g. {"reference":"A1:C5"})' },
+    },
+    async execute({ server, tool, args }) {
+      if (!server || !tool) throw new Error('"server" and "tool" are required');
+      const out = await mcp.callTool(server, tool, args || {});
+      return truncate(out);
     },
   },
 

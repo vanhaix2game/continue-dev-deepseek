@@ -8,8 +8,8 @@ Repo này chứa bộ tích hợp **Continue Dev** với 2 browser agent miễn 
 
 | Agent | Công nghệ | Thư mục | Kết quả |
 |-------|-----------|---------|---------|
-| **ChatGPT (khuyên dùng)** | Puppeteer CDP + daemon, REAL Chrome profile | `chatgpt-browser-agent-master/` | ✅ Chạy tốt — chat + agentic loop |
-| **DeepSeek** | Playwright persistent browser | `deepseek-browser-agent/` | Dual-mode (interactive + proxy) |
+| **ChatGPT (khuyên dùng)** | Puppeteer CDP + daemon, REAL Chrome profile | `chatgpt-browser-agent-master/` | ✅ Chạy tốt — chat + agentic loop + MCP (`mcp-cli.js`) |
+| **DeepSeek** | Playwright persistent browser | `deepseek-browser-agent/` | Dual-mode (interactive + proxy) + tool `mcp_call` |
 
 Ngoài ra còn nhiều config cho các nguồn model khác (OpenRouter free, Ollama local, API trả phí).
 
@@ -105,7 +105,9 @@ Tools: `chatgpt_ask`, `chatgpt_status`, `chatgpt_stop`.
 |------|-------|
 | `chatgpt.js` | Daemon CLI (launch/CDP, send prompt, stream wait) |
 | `openai-proxy.js` | OpenAI-compatible proxy (port 11436) cho Continue Dev |
-| `agent.js` | Agentic loop (===RUN=== / ===FILE===) |
+| `agent.js` | Agentic loop (===RUN=== / ===FILE=== / ===MCP===) |
+| `mcp.js` + `mcp.json` | MCP stdio client (JSON-RPC) — nói chuyện với MCP server như ExceLLM |
+| `mcp-cli.js` | CLI wrapper cho MCP: `node mcp-cli.js <server> <tool> '<json>'` |
 | `mcp-server.js` | MCP server (JSON-RPC stdio) cho OpenCode/Claude |
 | `launcher.js` | 1 lệnh khởi động Chrome + proxy |
 
@@ -123,6 +125,37 @@ node src/index.js --task "..."     # interactive mode
 ```
 
 > Lưu ý: DeepSeek agent dùng `chat.deepseek.com`. Chrome mở ra → login → Enter.
+
+---
+
+## 🔌 MCP (điều khiển Excel THẬT bằng ExceLLM)
+
+Cả 2 agent đều có thể gọi MCP server **ExceLLM** để đọc/ghi Excel đang mở (COM automation). Không cần API key — chỉ cần **Excel chạy** với workbook mở.
+
+### Điều kiện
+- Excel đang mở (có thể ẩn: `Visible=False`).
+- MCP server `excellm` chạy được: `python -m excellm` (ExceLLM v1.28+, 34 tools).
+- Test file mẫu: `C:\Users\CX-PC064\AppData\Local\Temp\opencode\mcp_test.xlsx` (sheet `Sheet`).
+
+### Trong ChatGPT agent (mcp-cli.js)
+```powershell
+cd "D:\Project\AI\Continue dev\chatgpt-browser-agent-master"
+node mcp-cli.js excellm list_open_workbooks '{}'
+node mcp-cli.js excellm read '{"workbook_name":"mcp_test.xlsx","sheet_name":"Sheet","reference":"A1:B3"}'
+```
+agent.js prompt đã hướng dẫn ChatGPT gọi qua `===RUN: node mcp-cli.js <server> <tool> '<json>'===`.
+
+### Trong DeepSeek agent (tool `mcp_call`)
+```json
+{"server":"excellm","tool":"list_open_workbooks","args":{}}
+{"server":"excellm","tool":"read","args":{"workbook_name":"mcp_test.xlsx","sheet_name":"Sheet","reference":"A1:B3"}}
+```
+Tool `mcp_call` đã được define trong `deepseek-browser-agent/src/tools.js`, dùng client `src/mcp.js`.
+
+### Lưu ý quan trọng
+- ExceLLM tool list: `list_open_workbooks`, `read`, `write`, `search`, `manage_sheet`, `select_range`, `format`, `insert`, `delete`, `copy_range`, `sort_range`, `find_replace`, `explore`, `inspect_workbook`, `create_table`, `create_chart`, `create_pivot_table`, `execute_vba`, `capture_sheet`, ...
+- Introspect trước khi đọc/ghi: gọi `list_open_workbooks` để biết tên workbook + sheet thật (vd sheet tên `Sheet` chứ không phải `Sheet1`).
+- MCP client dùng `python -m excellm` mỗi lần gọi (1–2 giây), an toàn với bảng lớn.
 
 ---
 
